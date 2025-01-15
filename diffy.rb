@@ -1,10 +1,12 @@
 require 'duckdb'
 require 'csv'
 
-FIRST_HEADER = 'Prior Year'.freeze
-old_csv = 'old.csv'
-new_csv = 'new.csv'
-db_file_path = 'bobduck.duckdb'
+folder = 'sjcdsbs'.freeze
+
+FIRST_HEADER = 'Ending Balance'.freeze
+old_csv = folder + '/old.csv'
+new_csv = folder + '/new.csv'
+db_file_path = folder + '/' + folder + '.duckdb'
 
 def csv_to_duckdb(csv_file_path, db_file_path, table_name)
   puts "Converting #{csv_file_path} to DuckDB table #{table_name} in #{db_file_path}..."
@@ -80,15 +82,16 @@ def compare_csvs_to_duckdb(old_csv, new_csv, db_file_path)
   # Connect to DuckDB
   conn = DuckDB::Database.open(db_file_path).connect
 
-  
   # Get headers from the Headers table
   headers = conn.execute("SELECT header FROM Headers").map { |row| row[0] }
 
   # Drop the Differences table if it exists
   conn.execute("DROP TABLE IF EXISTS Differences")
 
+  puts "Comparing Original_Records to New_Records..."
   # Create the Differences table
   create_differences_table_sql = "CREATE TABLE Differences (source TEXT, label TEXT, #{headers.map { |header| "\"#{header}\" TEXT" }.join(", ")}, index INT)"
+  puts create_differences_table_sql
   conn.execute(create_differences_table_sql)
 
   # Build the SQL query to find non-matching rows
@@ -110,6 +113,7 @@ def compare_csvs_to_duckdb(old_csv, new_csv, db_file_path)
   # Execute the comparison SQL
   conn.execute(comparison_sql)
 
+  puts "closing connection"
   # Close the connection
   conn.close
 end
